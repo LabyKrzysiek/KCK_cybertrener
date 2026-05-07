@@ -1,14 +1,21 @@
 import cv2
 import mediapipe as mp
+import math
+
+def calculate_angle(a, b, c):
+    radians = math.atan2(c[1] - b[1], c[0] - b[0]) - math.atan2(a[1] - b[1], a[0] - b[0])
+    angle = abs(radians * 180.0 / math.pi)
+    
+    if angle > 180.0:
+        angle = 360 - angle
+        
+    return angle
 
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
-
 pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
 
-
 cap = cv2.VideoCapture(0)
-
 print("Kamera uruchomiona. Wciśnij 'q', aby zamknąć okno.")
 
 while cap.isOpened():
@@ -17,26 +24,48 @@ while cap.isOpened():
         print("Nie można pobrać obrazu z kamery.")
         break
 
+    h, w, _ = frame.shape
+
     image_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    
     results = pose.process(image_rgb)
 
     if results.pose_landmarks:
         mp_drawing.draw_landmarks(
-            frame, 
-            results.pose_landmarks, 
-            mp_pose.POSE_CONNECTIONS,
-            mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2), # Kolor punktów
-            mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)  # Kolor linii
+            frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
+            mp_drawing.DrawingSpec(color=(245,117,66), thickness=2, circle_radius=2),
+            mp_drawing.DrawingSpec(color=(245,66,230), thickness=2, circle_radius=2)
         )
         
-        landmarks = results.pose_landmarks.landmark
-        
-        left_elbow = landmarks[mp_pose.PoseLandmark.LEFT_ELBOW.value]
-        
-        print(f"Lewy łokieć - X: {left_elbow.x:.2f}, Y: {left_elbow.y:.2f}, Z: {left_elbow.z:.2f}")
+        try:
+            landmarks = results.pose_landmarks.landmark
+            
+            shoulder = [landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].x, 
+                        landmarks[mp_pose.PoseLandmark.LEFT_SHOULDER.value].y]
+            hip = [landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].x, 
+                   landmarks[mp_pose.PoseLandmark.LEFT_HIP.value].y]
+            knee = [landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].x, 
+                    landmarks[mp_pose.PoseLandmark.LEFT_KNEE.value].y]
+            ankle = [landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].x, 
+                     landmarks[mp_pose.PoseLandmark.LEFT_ANKLE.value].y]
 
-    cv2.imshow('Personal Trainer - PoC Pose Detection', frame)
+            hip_angle = calculate_angle(shoulder, hip, knee)
+            knee_angle = calculate_angle(hip, knee, ankle)
+
+            hip_pixel_pos = (int(hip[0] * w), int(hip[1] * h))
+            knee_pixel_pos = (int(knee[0] * w), int(knee[1] * h))
+
+            cv2.putText(frame, str(int(hip_angle)), 
+                        hip_pixel_pos, 
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+            
+            cv2.putText(frame, str(int(knee_angle)), 
+                        knee_pixel_pos, 
+                        cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2, cv2.LINE_AA)
+
+        except Exception as e:
+            pass
+
+    cv2.imshow('Personal Trainer - Deadlift Angles', frame)
 
     if cv2.waitKey(10) & 0xFF == ord('q'):
         break
