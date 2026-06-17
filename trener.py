@@ -1,5 +1,6 @@
 import cv2
 import mediapipe as mp
+import config
 from tts import start_tts
 from utils import calculate_angle
 from logic import CyberTrainer
@@ -8,13 +9,16 @@ start_tts()
 
 mp_pose = mp.solutions.pose
 mp_drawing = mp.solutions.drawing_utils
-pose = mp_pose.Pose(min_detection_confidence=0.5, min_tracking_confidence=0.5)
+pose = mp_pose.Pose(
+    min_detection_confidence=config.MIN_DETECTION_CONFIDENCE,
+    min_tracking_confidence=config.MIN_TRACKING_CONFIDENCE
+)
 
 trainer = CyberTrainer()
 
-cap = cv2.VideoCapture(0)
+cap = cv2.VideoCapture(config.CAMERA_INDEX)
 cv2.namedWindow('cybertrener', cv2.WINDOW_NORMAL)
-cv2.resizeWindow('cybertrener', 1280, 720)
+cv2.resizeWindow('cybertrener', config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
 
 while cap.isOpened():
     success, frame = cap.read()
@@ -28,8 +32,16 @@ while cap.isOpened():
     if results.pose_landmarks:
         mp_drawing.draw_landmarks(
             frame, results.pose_landmarks, mp_pose.POSE_CONNECTIONS,
-            mp_drawing.DrawingSpec(color=(245, 117, 66), thickness=2, circle_radius=2),
-            mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2, circle_radius=2)
+            mp_drawing.DrawingSpec(
+                color=config.SKELETON_COLOR_JOINTS,
+                thickness=config.SKELETON_THICKNESS,
+                circle_radius=config.SKELETON_CIRCLE_RADIUS
+            ),
+            mp_drawing.DrawingSpec(
+                color=config.SKELETON_COLOR_BONES,
+                thickness=config.SKELETON_THICKNESS,
+                circle_radius=config.SKELETON_CIRCLE_RADIUS
+            )
         )
 
         try:
@@ -54,31 +66,32 @@ while cap.isOpened():
             hip_pixel_pos = (int(hip[0] * w), int(hip[1] * h))
             knee_pixel_pos = (int(knee[0] * w), int(knee[1] * h))
 
-            cv2.putText(frame, str(int(back_angle)), back_pixel_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 0), 2,
-                        cv2.LINE_AA)
-            cv2.putText(frame, str(int(hip_angle)), hip_pixel_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2,
-                        cv2.LINE_AA)
-            cv2.putText(frame, str(int(knee_angle)), knee_pixel_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 255, 255), 2,
-                        cv2.LINE_AA)
+            cv2.putText(frame, str(int(back_angle)), back_pixel_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+                        config.COLOR_ANGLE_HIGHLIGHT, 2, cv2.LINE_AA)
+            cv2.putText(frame, str(int(hip_angle)), hip_pixel_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+                        config.COLOR_TEXT_LIGHT, 2, cv2.LINE_AA)
+            cv2.putText(frame, str(int(knee_angle)), knee_pixel_pos, cv2.FONT_HERSHEY_SIMPLEX, 0.8,
+                        config.COLOR_TEXT_LIGHT, 2, cv2.LINE_AA)
 
         except Exception as e:
             pass
 
-    cv2.rectangle(frame, (0, 0), (550, 150), (245, 117, 16), -1)
+    cv2.rectangle(frame, (0, 0), (config.UI_PANEL_WIDTH, config.UI_PANEL_HEIGHT), config.COLOR_PANEL_BG, -1)
 
-    cv2.putText(frame, 'POWT:', (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 1, cv2.LINE_AA)
-    cv2.putText(frame, str(trainer.counter), (110, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2, cv2.LINE_AA)
+    cv2.putText(frame, 'POWT:', (15, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, config.COLOR_TEXT_DARK, 1, cv2.LINE_AA)
+    cv2.putText(frame, str(trainer.counter), (110, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, config.COLOR_TEXT_LIGHT, 2,
+                cv2.LINE_AA)
 
-    cv2.putText(frame, 'FAZA:', (15, 85), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 1, cv2.LINE_AA)
-    cv2.putText(frame, trainer.stage, (110, 90), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 255, 255), 2, cv2.LINE_AA)
+    cv2.putText(frame, 'FAZA:', (15, 85), cv2.FONT_HERSHEY_SIMPLEX, 0.8, config.COLOR_TEXT_DARK, 1, cv2.LINE_AA)
+    cv2.putText(frame, trainer.stage, (110, 90), cv2.FONT_HERSHEY_SIMPLEX, 1.2, config.COLOR_TEXT_LIGHT, 2, cv2.LINE_AA)
 
-    cv2.putText(frame, 'STATUS:', (15, 135), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), 1, cv2.LINE_AA)
+    cv2.putText(frame, 'STATUS:', (15, 135), cv2.FONT_HERSHEY_SIMPLEX, 0.8, config.COLOR_TEXT_DARK, 1, cv2.LINE_AA)
     cv2.putText(frame, trainer.feedback, (110, 140), cv2.FONT_HERSHEY_SIMPLEX, 0.9, trainer.feedback_color, 2,
                 cv2.LINE_AA)
 
     cv2.imshow('cybertrener', frame)
 
-    if cv2.waitKey(10) & 0xFF == ord('q'):
+    if cv2.waitKey(config.WAIT_KEY_DELAY) & 0xFF == ord('q'):
         break
 
 cap.release()
