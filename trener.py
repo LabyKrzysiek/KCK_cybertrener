@@ -17,6 +17,13 @@ pose = mp_pose.Pose(
 trainer = CyberTrainer()
 
 cap = cv2.VideoCapture(config.CAMERA_INDEX)
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+
+
+cap.set(cv2.CAP_PROP_ZOOM, 0)
+
+cv2.namedWindow('cybertrener', cv2.WINDOW_NORMAL)
 cv2.namedWindow('cybertrener', cv2.WINDOW_NORMAL)
 cv2.resizeWindow('cybertrener', config.WINDOW_WIDTH, config.WINDOW_HEIGHT)
 
