@@ -9,7 +9,12 @@ class CyberTrainer:
         self.feedback_color = (0, 165, 255)
         self.bad_rep = False
 
+        self.welcome_spoken = False
         self.calib_spoken = False
+
+        self.warned_back = False
+        self.warned_legs = False
+
         self.calibration_counter = 0
         self.calibration_limit = 60
         self.calib_hip_angles = []
@@ -22,6 +27,10 @@ class CyberTrainer:
 
     def update(self, back_angle, hip_angle, knee_angle):
         if self.stage == "KALIBRACJA":
+            if not self.welcome_spoken:
+                speak("Rozpoczynam kalibrację. Stań prosto przodem do kamery i poczekaj.")
+                self.welcome_spoken = True
+
             self.calibration_counter += 1
             self.calib_hip_angles.append(hip_angle)
             self.calib_knee_angles.append(knee_angle)
@@ -45,7 +54,7 @@ class CyberTrainer:
                 self.feedback_color = (0, 255, 0)
 
                 if not self.calib_spoken:
-                    speak("Kalibracja zakończona.")
+                    speak("Kalibracja zakończona sukcesem. Możesz zacząć ćwiczyć.")
                     self.calib_spoken = True
 
         else:
@@ -53,9 +62,13 @@ class CyberTrainer:
                 self.feedback = "Postawa OK"
                 self.feedback_color = (0, 255, 0)
 
+
             if hip_angle < 110 and knee_angle < 120:
                 self.stage = "STARTOWA"
                 self.bad_rep = False
+                self.warned_back = False
+                self.warned_legs = False
+            # ------------------------
 
             elif self.stage == "STARTOWA" and (hip_angle >= 110 or knee_angle >= 120):
                 self.stage = "PODNOSZENIE"
@@ -64,6 +77,11 @@ class CyberTrainer:
                 if self.stage == "PODNOSZENIE":
                     if not self.bad_rep:
                         self.counter += 1
+                        speak(str(self.counter))
+
+                        if self.counter > 0 and self.counter % 5 == 0:
+                            speak("Świetna robota, tak trzymaj!")
+
                 self.stage = "PELNY WYPROST"
 
             elif self.stage == "PELNY WYPROST" and (
@@ -75,10 +93,16 @@ class CyberTrainer:
                     self.bad_rep = True
                     self.feedback = "BLAD: Koci grzbiet!"
                     self.feedback_color = (0, 0, 255)
-                    speak("Błąd! Zgarbione plecy.")
+
+                    if not self.warned_back:
+                        speak("Błąd! Zgarbione plecy. Ściągnij łopatki i wypnij klatkę piersiową.")
+                        self.warned_back = True
 
                 elif knee_angle > 140 and hip_angle < 135:
                     self.bad_rep = True
                     self.feedback = "BLAD: Wyprostowane nogi!"
                     self.feedback_color = (0, 0, 255)
-                    speak("Błąd! Za szybko nogi.")
+
+                    if not self.warned_legs:
+                        speak("Błąd! Zbyt wcześnie prostujesz nogi. Używaj bioder!")
+                        self.warned_legs = True
